@@ -157,18 +157,101 @@ Add this to your global `~/.claude/CLAUDE.md` (create if it doesn't exist):
 
 Two commands are available globally: `excalidraw-to-image` and `excalidraw-draw`.
 
-### Reading an existing file
-When the user mentions a `.excalidraw` or `.excalidraw.md` file:
+---
+
+### Reading a file
+
+When the user mentions a `.excalidraw` or `.excalidraw.md` file, always:
 1. Run: `excalidraw-to-image "path/to/file.excalidraw.md" -o "/tmp/preview.png"`
 2. Read the PNG with the Read tool
 3. Never read the raw text of an Excalidraw file without rendering it first
 
-### Drawing a new wireframe
-When asked to create a wireframe or diagram:
-1. Declare in plain text what you are going to draw
-2. Run: `excalidraw-draw --inline '<spec JSON>' -o "/tmp/drawing.excalidraw"`
-3. Run: `excalidraw-to-image "/tmp/drawing.excalidraw" -o "/tmp/drawing.png"`
-4. Read the PNG and compare with your initial declaration
+To zoom into a region of a large image, use Puppeteer to crop it:
+```javascript
+// node /tmp/crop.js
+const puppeteer = require('/path/to/excalidraw-to-image/node_modules/puppeteer');
+const fs = require('fs');
+const [cropX, cropY, cropW, cropH] = [0, 200, 800, 600]; // pixels on the full image
+(async () => {
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+  const page = await browser.newPage();
+  await page.setViewport({ width: cropW, height: cropH });
+  const b64 = fs.readFileSync('/tmp/preview.png').toString('base64');
+  await page.setContent(`<html><body style="margin:0;overflow:hidden">
+    <img src="data:image/png;base64,${b64}"
+         style="position:absolute;top:-${cropY}px;left:-${cropX}px">
+  </body></html>`);
+  await new Promise(r => setTimeout(r, 400));
+  fs.writeFileSync('/tmp/crop.png', await page.screenshot());
+  await browser.close();
+})();
+```
+
+---
+
+### Drawing
+
+**Workflow:**
+1. **Declare** in plain text what you are going to draw
+2. **Generate** the file:
+   ```bash
+   # Plain .excalidraw (for rendering)
+   excalidraw-draw --inline '<spec JSON>' -o "/tmp/drawing.excalidraw"
+   # Obsidian-compatible (openable directly in the vault)
+   excalidraw-draw --inline '<spec JSON>' -o "/path/to/vault/drawing.excalidraw.md"
+   ```
+3. **Render** to PNG:
+   ```bash
+   excalidraw-to-image "/tmp/drawing.excalidraw" -o "/tmp/drawing.png"
+   ```
+4. **Compare** with the Read tool — if the render does not match the declaration, fix the spec and regenerate
+
+---
+
+### Spec format
+
+```json
+{
+  "background": "#ffffff",
+  "elements": [
+    { "type": "rectangle", "x": 0,   "y": 0,   "width": 300, "height": 60, "label": "Header" },
+    { "type": "ellipse",   "x": 0,   "y": 80,  "width": 60,  "height": 60 },
+    { "type": "diamond",   "x": 100, "y": 80,  "width": 100, "height": 60, "label": "Decision?" },
+    { "type": "text",      "x": 0,   "y": 160, "text": "A note", "fontSize": 14 },
+    { "type": "arrow",     "x": 50,  "y": 60,  "points": [[0,0],[0,80]] },
+    { "type": "line",      "x": 0,   "y": 200, "points": [[0,0],[300,0]] },
+    { "type": "frame",     "x": 0,   "y": 0,   "width": 400, "height": 300, "label": "Section" }
+  ]
+}
+```
+
+**Element types:**
+
+| Type | Required | Notes |
+|------|----------|-------|
+| `rectangle` | `x y width height` | `label` adds centered text inside |
+| `ellipse` | `x y width height` | `label` adds centered text inside |
+| `diamond` | `x y width height` | `label` adds centered text inside |
+| `text` | `x y text` | standalone text |
+| `arrow` | `x y points` | `points` are relative to `x,y` — e.g. `[[0,0],[100,50]]` |
+| `line` | `x y points` | same as arrow, no arrowhead |
+| `frame` | `x y width height` | named container, `label` sets the title |
+
+**Style properties (all optional):**
+
+| Property | Values | Default |
+|----------|--------|---------|
+| `strokeColor` | any hex | `#1e1e1e` |
+| `backgroundColor` | any hex or `transparent` | `transparent` |
+| `fillStyle` | `solid` `hachure` `cross-hatch` `dots` | `solid` |
+| `strokeWidth` | `1` `2` `4` | `2` |
+| `strokeStyle` | `solid` `dashed` `dotted` | `solid` |
+| `roughness` | `0` clean · `1` sketch · `2` very rough | `1` |
+| `opacity` | `0`–`100` | `100` |
+| `fontSize` | px | `16` |
+| `fontFamily` | `1` Virgil (handwritten) · `2` Helvetica · `3` Cascadia (mono) | `1` |
+
+**Coordinate system:** origin (0,0) top-left, x → right, y → down.
 ````
 
 ---
