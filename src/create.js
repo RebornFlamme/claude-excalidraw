@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const LZString = require("lz-string");
 
 function uid() {
   return crypto.randomBytes(9).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 12);
@@ -188,4 +189,50 @@ function buildDocument(spec) {
   };
 }
 
-module.exports = { buildDocument };
+/**
+ * Build an Obsidian-compatible `.excalidraw.md` string from a spec.
+ * The output can be saved directly as a `.excalidraw.md` file and opened
+ * in Obsidian with the Excalidraw plugin.
+ */
+function buildObsidianMarkdown(spec) {
+  const doc = buildDocument(spec);
+
+  // Collect all text content for the ## Text Elements section
+  const textElements = doc.elements.filter((el) => el.type === "text");
+  const textSection = textElements
+    .map((el) => `${el.text} ^${el.id}`)
+    .join("\n\n");
+
+  // Compress the JSON document with LZ-string (same algorithm Obsidian uses)
+  const compressed = LZString.compressToBase64(JSON.stringify(doc));
+
+  // Split into lines of 100 chars to match Obsidian's formatting
+  const lines = compressed.match(/.{1,100}/g) ?? [];
+  const compressedBlock = lines.join("\n");
+
+  return [
+    "---",
+    "",
+    "excalidraw-plugin: parsed",
+    "tags: [excalidraw]",
+    "",
+    "---",
+    "==⚠  Switch to EXCALIDRAW VIEW in the MORE OPTIONS menu of this document. ⚠== You can decompress Drawing data with the command palette: 'Decompress current Excalidraw file'. For more info check in plugin settings under 'Saving'",
+    "",
+    "",
+    "# Excalidraw Data",
+    "",
+    "## Text Elements",
+    textSection,
+    "",
+    "%%",
+    "## Drawing",
+    "```compressed-json",
+    compressedBlock,
+    "```",
+    "%%",
+    "",
+  ].join("\n");
+}
+
+module.exports = { buildDocument, buildObsidianMarkdown };

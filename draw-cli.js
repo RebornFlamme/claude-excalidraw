@@ -16,7 +16,7 @@ if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
   process.exit(0);
 }
 
-const { buildDocument } = require("./src/create");
+const { buildDocument, buildObsidianMarkdown } = require("./src/create");
 
 const outputIndex = args.indexOf("-o");
 const inlineIndex = args.indexOf("--inline");
@@ -60,8 +60,20 @@ if (inlineIndex !== -1) {
       : inputFile.replace(/\.json$/, ".excalidraw");
 }
 
-const doc = buildDocument(spec);
-fs.writeFileSync(outputFile, JSON.stringify(doc, null, 2));
+const isObsidian = outputFile.endsWith(".excalidraw.md");
 
-const elementCount = doc.elements.length;
+let content;
+let elementCount;
+
+if (isObsidian) {
+  content = buildObsidianMarkdown(spec);
+  // Count elements by building the doc (buildObsidianMarkdown does it internally)
+  elementCount = buildDocument(spec).elements.length;
+} else {
+  const doc = buildDocument(spec);
+  content = JSON.stringify(doc, null, 2);
+  elementCount = doc.elements.length;
+}
+
+fs.writeFileSync(outputFile, content, "utf8");
 console.log(`Created ${elementCount} element(s) → ${outputFile}`);
