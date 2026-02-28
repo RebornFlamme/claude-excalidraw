@@ -159,19 +159,19 @@ Two commands are available globally: `excalidraw-to-image` and `excalidraw-draw`
 
 ---
 
-### Reading an existing file
+### Reading a file
 
 When the user mentions a `.excalidraw` or `.excalidraw.md` file, always:
 1. Run: `excalidraw-to-image "path/to/file.excalidraw.md" -o "/tmp/preview.png"`
-2. Read the PNG with the Read tool to see it visually
+2. Read the PNG with the Read tool
 3. Never read the raw text of an Excalidraw file without rendering it first
 
-To zoom into a specific area of a large image, use Puppeteer to crop it:
+To zoom into a region of a large image, use Puppeteer to crop it:
 ```javascript
-// run via Bash: node /tmp/crop.js
-const puppeteer = require('C:/path/to/excalidraw-to-image/node_modules/puppeteer');
+// node /tmp/crop.js
+const puppeteer = require('/path/to/excalidraw-to-image/node_modules/puppeteer');
 const fs = require('fs');
-const [cropX, cropY, cropW, cropH] = [0, 200, 800, 600]; // adjust to the region
+const [cropX, cropY, cropW, cropH] = [0, 200, 800, 600]; // pixels on the full image
 (async () => {
   const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   const page = await browser.newPage();
@@ -189,29 +189,22 @@ const [cropX, cropY, cropW, cropH] = [0, 200, 800, 600]; // adjust to the region
 
 ---
 
-### Drawing a new wireframe
+### Drawing
 
-**When to proactively offer to draw** (without waiting to be asked):
-- The user describes an interface, a flow, or an architecture
-- A diagram would communicate the answer more clearly than text
-- The user shows an existing wireframe and asks for changes or improvements
-
-**Workflow — always follow this order:**
-1. **Declare** in plain text what you are going to draw: screens, components, flow, annotations
+**Workflow:**
+1. **Declare** in plain text what you are going to draw
 2. **Generate** the file:
    ```bash
-   # Plain file (for rendering only)
+   # Plain .excalidraw (for rendering)
    excalidraw-draw --inline '<spec JSON>' -o "/tmp/drawing.excalidraw"
-   # Obsidian-compatible (openable in the vault)
+   # Obsidian-compatible (openable directly in the vault)
    excalidraw-draw --inline '<spec JSON>' -o "/path/to/vault/drawing.excalidraw.md"
    ```
 3. **Render** to PNG:
    ```bash
    excalidraw-to-image "/tmp/drawing.excalidraw" -o "/tmp/drawing.png"
    ```
-4. **Compare** visually using the Read tool:
-   - If the render matches the declaration → confirm ✅
-   - If something is mispositioned or unreadable → fix the spec and regenerate, do not leave a bad result without correcting it
+4. **Compare** with the Read tool — if the render does not match the declaration, fix the spec and regenerate
 
 ---
 
@@ -221,123 +214,44 @@ const [cropX, cropY, cropW, cropH] = [0, 200, 800, 600]; // adjust to the region
 {
   "background": "#ffffff",
   "elements": [
-    { "type": "rectangle", "x": 0,   "y": 0,   "width": 300, "height": 60,  "label": "Header" },
-    { "type": "ellipse",   "x": 0,   "y": 80,  "width": 60,  "height": 60  },
-    { "type": "diamond",   "x": 100, "y": 80,  "width": 100, "height": 60,  "label": "Decision?" },
+    { "type": "rectangle", "x": 0,   "y": 0,   "width": 300, "height": 60, "label": "Header" },
+    { "type": "ellipse",   "x": 0,   "y": 80,  "width": 60,  "height": 60 },
+    { "type": "diamond",   "x": 100, "y": 80,  "width": 100, "height": 60, "label": "Decision?" },
     { "type": "text",      "x": 0,   "y": 160, "text": "A note", "fontSize": 14 },
     { "type": "arrow",     "x": 50,  "y": 60,  "points": [[0,0],[0,80]] },
     { "type": "line",      "x": 0,   "y": 200, "points": [[0,0],[300,0]] },
-    { "type": "frame",     "x": 0,   "y": 0,   "width": 400, "height": 300, "label": "Screen A" }
+    { "type": "frame",     "x": 0,   "y": 0,   "width": 400, "height": 300, "label": "Section" }
   ]
 }
 ```
 
-Supported types: `rectangle`, `ellipse`, `diamond`, `text`, `arrow`, `line`, `frame`
+**Element types:**
 
-Style properties (all optional):
+| Type | Required | Notes |
+|------|----------|-------|
+| `rectangle` | `x y width height` | `label` adds centered text inside |
+| `ellipse` | `x y width height` | `label` adds centered text inside |
+| `diamond` | `x y width height` | `label` adds centered text inside |
+| `text` | `x y text` | standalone text |
+| `arrow` | `x y points` | `points` are relative to `x,y` — e.g. `[[0,0],[100,50]]` |
+| `line` | `x y points` | same as arrow, no arrowhead |
+| `frame` | `x y width height` | named container, `label` sets the title |
+
+**Style properties (all optional):**
 
 | Property | Values | Default |
 |----------|--------|---------|
-| `strokeColor` | hex | `#1e1e1e` |
-| `backgroundColor` | hex or `transparent` | `transparent` |
-| `fillStyle` | `solid`, `hachure`, `cross-hatch`, `dots` | `solid` |
-| `strokeWidth` | `1`, `2`, `4` | `2` |
-| `strokeStyle` | `solid`, `dashed`, `dotted` | `solid` |
-| `roughness` | `0` clean, `1` sketch, `2` very rough | `1` |
-| `fontSize` | number in px | `16` |
-| `fontFamily` | `1` Virgil (handwritten), `2` Helvetica, `3` Cascadia (mono) | `1` |
+| `strokeColor` | any hex | `#1e1e1e` |
+| `backgroundColor` | any hex or `transparent` | `transparent` |
+| `fillStyle` | `solid` `hachure` `cross-hatch` `dots` | `solid` |
+| `strokeWidth` | `1` `2` `4` | `2` |
+| `strokeStyle` | `solid` `dashed` `dotted` | `solid` |
+| `roughness` | `0` clean · `1` sketch · `2` very rough | `1` |
+| `opacity` | `0`–`100` | `100` |
+| `fontSize` | px | `16` |
+| `fontFamily` | `1` Virgil (handwritten) · `2` Helvetica · `3` Cascadia (mono) | `1` |
 
----
-
-### Layout strategy
-
-**Coordinate system:** origin (0,0) is top-left, x goes right, y goes down.
-
-**Typical canvas sizes:**
-- Mobile: 375 × 812 px
-- Desktop: 1280 × 800 px
-- Tablet: 768 × 1024 px
-
-**Standard spacing:**
-- Screen padding: 20–40 px from the edge
-- Gap between elements: 12–16 px (compact), 24–32 px (airy)
-- Navbar height: 56 px
-- Button height: 44–48 px
-- Form field height: 44 px
-
-**Typography scale:**
-- H1 / page title: `fontSize: 28`
-- H2 / section title: `fontSize: 20`
-- Label / subtitle: `fontSize: 16`
-- Body text: `fontSize: 14`
-- Caption / hint: `fontSize: 12`
-
-**Always calculate positions explicitly before writing the spec.** Example — centering a 300px button on a 375px mobile screen: `x = (375 - 300) / 2 = 37`.
-
-**Multiple screens side by side:** space frames 80–120 px apart horizontally so arrows can fit between them.
-
----
-
-### Visual conventions
-
-**Lo-fi wireframe (default):**
-- `roughness: 1`, `fontFamily: 1` (Virgil)
-- Palette: `strokeColor: "#1e1e1e"`, fills `"#f5f5f5"` or `transparent`
-- Use color only for primary CTAs
-
-**Hi-fi wireframe (when asked):**
-- `roughness: 0`, `fontFamily: 2` (Helvetica)
-- Real colors for buttons, icons, states
-
-**Primary button:** `backgroundColor: "#4361ee"`, `strokeColor: "#4361ee"`, `fillStyle: "solid"`, `roughness: 0`
-
-**Form field:** `backgroundColor: "#f8f8f8"`, `strokeColor: "#cccccc"`, `roughness: 0`
-
-**Disabled / placeholder area:** `backgroundColor: "#ebebeb"`, `opacity: 60`
-
-**Annotation / design comment:** `text` in red (`strokeColor: "#e03131"`) with an `arrow` pointing to the relevant element
-
----
-
-### Common UI patterns
-
-**Mobile navbar:**
-```json
-{ "type": "rectangle", "x": 0, "y": 0, "width": 375, "height": 56,
-  "backgroundColor": "#ffffff", "strokeColor": "#e0e0e0", "roughness": 0 },
-{ "type": "text", "x": 16, "y": 18, "text": "← Back", "fontSize": 16 },
-{ "type": "text", "x": 155, "y": 18, "text": "Title", "fontSize": 18 }
-```
-
-**Content card:**
-```json
-{ "type": "rectangle", "x": 20, "y": 80, "width": 335, "height": 100,
-  "backgroundColor": "#ffffff", "strokeColor": "#e0e0e0", "roughness": 0 },
-{ "type": "rectangle", "x": 32, "y": 92, "width": 76, "height": 76,
-  "backgroundColor": "#ebebeb", "roughness": 0 },
-{ "type": "text", "x": 120, "y": 96, "text": "Card title", "fontSize": 16 },
-{ "type": "text", "x": 120, "y": 120, "text": "Subtitle or description", "fontSize": 13 }
-```
-
-**Horizontal divider:**
-```json
-{ "type": "line", "x": 20, "y": 200, "points": [[0,0],[335,0]],
-  "strokeColor": "#e0e0e0", "roughness": 0 }
-```
-
-**Modal overlay:**
-```json
-{ "type": "rectangle", "x": 0, "y": 0, "width": 375, "height": 812,
-  "backgroundColor": "#000000", "fillStyle": "solid", "opacity": 40, "roughness": 0 },
-{ "type": "rectangle", "x": 20, "y": 220, "width": 335, "height": 280,
-  "backgroundColor": "#ffffff", "roughness": 0 }
-```
-
-**Navigation arrow between screens:**
-```json
-{ "type": "arrow", "x": 415, "y": 300, "points": [[0,0],[70,0]],
-  "strokeColor": "#868e96", "roughness": 0 }
-```
+**Coordinate system:** origin (0,0) top-left, x → right, y → down.
 ````
 
 ---
