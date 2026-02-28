@@ -1,0 +1,37 @@
+{
+  "name": "excalidraw-to-image",
+  "version": "1.0.0",
+  "description": "Convert Obsidian Excalidraw files (.excalidraw.md) to PNG images",
+  "bin": {
+    "excalidraw-to-image": "./cli.js"
+  },
+  "scripts": {
+    "build": "node build-renderer.js",
+    "postinstall": "node build-renderer.js"
+  },
+  "files": [
+    "cli.js",
+    "build-renderer.js",
+    "src/"
+  ],
+  "keywords": [
+    "excalidraw",
+    "obsidian",
+    "wireframe",
+    "png",
+    "export",
+    "cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.0",
+    "esbuild": "^0.25.0",
+    "lz-string": "^1.5.0",
+    "puppeteer": "^24.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
