@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Convert Obsidian Excalidraw files (.excalidraw.md) to PNG images",
   "bin": {
-    "excalidraw-to-image": "./cli.js"
+    "excalidraw-to-image": "./cli.js",
+    "excalidraw-draw": "./draw-cli.js"
   },
   "scripts": {
     "build": "node build-renderer.js",
@@ -11,6 +12,7 @@
   },
   "files": [
     "cli.js",
+    "draw-cli.js",
     "build-renderer.js",
     "src/"
   ],
